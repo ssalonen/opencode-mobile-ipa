@@ -149,6 +149,49 @@ jobs:
           echo "IPA_PATH=$RUNNER_TEMP/OpenCodeMobile.ipa" >> "$GITHUB_ENV"
           echo "IPA_SIZE=$(wc -c < OpenCodeMobile.ipa | tr -d ' ')" >> "$GITHUB_ENV"
 
+      - name: Validate IPA structure
+        run: |
+          cd "$RUNNER_TEMP"
+          
+          # Check it's a valid zip
+          if ! zip -T OpenCodeMobile.ipa > /dev/null 2>&1; then
+            echo "ERROR: IPA is not a valid zip archive"
+            exit 1
+          fi
+          
+          # Check it contains Payload directory
+          if ! zip -l OpenCodeMobile.ipa | grep -q "Payload/"; then
+            echo "ERROR: IPA missing Payload directory"
+            exit 1
+          fi
+          
+          # Check for embedded.mobileprovision (should NOT exist for unsigned)
+          if zip -l OpenCodeMobile.ipa | grep -q "embedded.mobileprovision"; then
+            echo "WARNING: IPA contains provisioning profile (may cause issues)"
+          fi
+          
+          # Verify Info.plist exists and has required keys
+          unzip -p OpenCodeMobile.ipa Payload/OpenCode.app/Info.plist > /tmp/Info.plist
+          if [ ! -s /tmp/Info.plist ]; then
+            echo "ERROR: Missing Info.plist in IPA"
+            exit 1
+          fi
+          
+          # Validate required keys exist
+          BUNDLE_ID=$(plutil -extract CFBundleIdentifier raw /tmp/Info.plist)
+          VERSION=$(plutil -extract CFBundleVersion raw /tmp/Info.plist)
+          
+          echo "Bundle ID: $BUNDLE_ID"
+          echo "Version: $VERSION"
+          
+          if [ -z "$BUNDLE_ID" ]; then
+            echo "ERROR: Missing CFBundleIdentifier"
+            exit 1
+          fi
+          
+          echo "IPA validation passed"
+          ls -lh OpenCodeMobile.ipa
+
       - name: Update altstore-source.json
         run: |
           export DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/OpenCodeMobile.ipa"
@@ -187,15 +230,25 @@ jobs:
           app["downloadURL"] = download_url
           app["size"] = ipa_size
 
-          with open("altstore-source.json", "w") as f:
-              json.dump(source, f, indent=2)
-              f.write("\n")
+with open("altstore-source.json", "w") as f:
+               json.dump(source, f, indent=2)
+               f.write("\n")
 
-          # Stash a copy so the commit step can apply it after switching to main
-          shutil.copy("altstore-source.json", os.path.join(os.environ["RUNNER_TEMP"], "altstore-source.json"))
+           # Validate the JSON is valid
+           with open("altstore-source.json") as f:
+               json.load(f)
+           print("AltStore source JSON is valid")
 
-          print(f"Updated source to {version_num} ({ipa_size} bytes)")
-          PYEOF
+           # Verify download URL is accessible
+           import urllib.request
+           try:
+               response = urllib.request.urlopen(download_url, timeout=10)
+               print(f"IPA URL accessible: {response.status}")
+           except Exception as e:
+               print(f"WARNING: Could not verify IPA URL: {e}")
+
+           print(f"Updated source to {version_num} ({ipa_size} bytes)")
+           PYEOF
 
       - name: Commit updated source JSON
         run: |
