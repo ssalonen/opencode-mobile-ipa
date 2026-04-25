@@ -70,12 +70,32 @@ jobs:
 
       - name: Get version
         run: |
+          # Read current version and increment
+          python3 - <<'PYEOF'
+          import json
+          
+          with open("altstore-source.json") as f:
+              source = json.load(f)
+          
+          current = source["apps"][0].get("version", "1.0.0")
+          parts = current.split(".")
+          if len(parts) == 3:
+              parts[-1] = str(int(parts[-1]) + 1)
+          elif len(parts) == 2:
+              parts.append("1")
+          new_version = ".".join(parts)
+          
+          print(new_version)
+          with open("new-version.txt", "w") as f:
+              f.write(new_version)
+          PYEOF
+          
+          NEW_VERSION=$(cat new-version.txt)
           SHA="${{ needs.check-new-version.outputs.new_sha }}"
           SHORT_SHA="${SHA:0:7}"
-          TAG_NAME="v1.0.0-${SHORT_SHA}"
-          export TAG="$SHA"  # Keep full SHA for last-built tracking
+          TAG_NAME="v${NEW_VERSION}-${SHORT_SHA}"
           echo "TAG=$TAG_NAME" >> "$GITHUB_ENV"
-          echo "VERSION_NUM=1.0.0" >> "$GITHUB_ENV"
+          echo "VERSION_NUM=$NEW_VERSION" >> "$GITHUB_ENV"
 
       - name: Clone upstream repo
         run: |
