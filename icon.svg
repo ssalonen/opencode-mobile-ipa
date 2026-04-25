@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+    <linearGradient id="terminal" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00ff88"/>
+      <stop offset="100%" style="stop-color:#00ccff"/>
+    </linearGradient>
+    <linearGradient id="cat" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b9d"/>
+      <stop offset="100%" style="stop-color:#ff8fb3"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background rounded rect -->
+  <rect x="0" y="0" width="512" height="512" rx="96" ry="96" fill="url(#bg)"/>
+
+  <!-- Cat head outline -->
+  <path d="M256 130
+           C200 130 155 160 145 200
+           L115 265
+           C105 280 95 300 105 320
+           L140 370
+           C155 390 195 395 210 380
+           L230 360
+           L256 375
+           L282 360
+           L302 380
+           C317 395 357 390 372 370
+           L407 320
+           C417 300 407 280 397 265
+           L367 200
+           C357 160 312 130 256 130Z"
+        fill="url(#cat)"
+        filter="url(#glow)"/>
+
+  <!-- Cat ears (inner) -->
+  <path d="M155 210 L130 155 L180 190Z" fill="#1a1a2e"/>
+  <path d="M357 210 L382 155 L332 190Z" fill="#1a1a2e"/>
+
+  <!-- Cat eyes -->
+  <ellipse cx="215" cy="260" rx="25" ry="28" fill="#1a1a2e"/>
+  <ellipse cx="297" cy="260" rx="25" ry="28" fill="#1a1a2e"/>
+  <ellipse cx="218" cy="255" rx="10" ry="14" fill="#00ff88" opacity="0.9"/>
+  <ellipse cx="300" cy="255" rx="10" ry="14" fill="#00ff88" opacity="0.9"/>
+  <ellipse cx="218" cy="252" rx="4" ry="8" fill="#ffffff" opacity="0.7"/>
+  <ellipse cx="300" cy="252" rx="4" ry="8" fill="#ffffff" opacity="0.7"/>
+
+  <!-- Terminal prompt >_ -->
+  <text x="256" y="455" text-anchor="middle" font-family="monospace" font-size="90" font-weight="bold" fill="url(#terminal)" filter="url(#glow)">&gt;_</text>
+
+  <!-- Whiskers -->
+  <line x1="60" y1="280" x2="140" y2="295" stroke="#ff6b9d" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+  <line x1="60" y1="310" x2="140" y2="310" stroke="#ff6b9d" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+  <line x1="60" y1="340" x2="140" y2="325" stroke="#ff6b9d" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+  <line x1="452" y1="280" x2="372" y2="295" stroke="#ff6b9d" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+  <line x1="452" y1="310" x2="372" y2="310" stroke="#ff6b9d" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+  <line x1="452" y1="340" x2="372" y2="325" stroke="#ff6b9d" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+</svg>
