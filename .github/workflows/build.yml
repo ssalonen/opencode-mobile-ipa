@@ -4,6 +4,14 @@ on:
   schedule:
     - cron: '0 0 * * 0'  # weekly (Sunday midnight UTC)
   workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Force rebuild even if no upstream changes'
+        required: false
+        default: 'false'
+
+  pull_request:
+    types: [opened, reopened]
 
 jobs:
   check-new-version:
@@ -37,8 +45,14 @@ jobs:
           
           echo "Last built: $last_built"
           
-          # Use SHA as version identifier
-          if [ "$new_sha" != "$last_built" ]; then
+          # Force rebuild if requested via workflow_dispatch
+          if [ "${{ inputs.force_rebuild }}" == "true" ]; then
+            echo "Force rebuild requested"
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            echo "new_sha=$new_sha" >> "$GITHUB_OUTPUT"
+            echo "new_version=${new_sha:0:7}" >> "$GITHUB_OUTPUT"
+            echo "Forced rebuild: $new_sha"
+          elif [ "$new_sha" != "$last_built" ]; then
             echo "should_build=true" >> "$GITHUB_OUTPUT"
             echo "new_sha=$new_sha" >> "$GITHUB_OUTPUT"
             # Use first 7 chars of SHA as version
