@@ -103,8 +103,8 @@ jobs:
         run: |
           cd upstream-repo/packages/mobile/ios
           xcodebuild archive \
-            -workspace OpenCodeMobile.xcworkspace \
-            -scheme OpenCodeMobile \
+            -workspace OpenCode.xcworkspace \
+            -scheme OpenCode \
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/OpenCodeMobile.xcarchive" \
@@ -116,7 +116,7 @@ jobs:
 
       - name: Package IPA
         run: |
-          APP_PATH=$(find "$RUNNER_TEMP/OpenCodeMobile.xcarchive" -name "OpenCodeMobile.app" | head -1)
+          APP_PATH=$(find "$RUNNER_TEMP/OpenCodeMobile.xcarchive" -name "OpenCode.app" | head -1)
           mkdir -p "$RUNNER_TEMP/Payload"
           cp -r "$APP_PATH" "$RUNNER_TEMP/Payload/"
           cd "$RUNNER_TEMP"
