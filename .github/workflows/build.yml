@@ -175,25 +175,28 @@ jobs:
           fi
           echo "✓ Valid zip archive"
           
-          LIST=$(zip -l OpenCodeMobile.ipa)
-          echo "Contents: $LIST"
+          echo "Listing IPA contents:"
+          zip -l OpenCodeMobile.ipa 2>&1 | head -50
           
-          if ! echo "$LIST" | grep -q "Payload"; then
+          echo "Checking for Payload:"
+          if zip -l OpenCodeMobile.ipa 2>&1 | grep -q "Payload"; then
+            echo "✓ Contains Payload directory"
+          else
             echo "ERROR: IPA missing Payload directory"
             exit 1
           fi
-          echo "✓ Contains Payload directory"
           
-          if echo "$LIST" | grep -qi "mobileprovision"; then
+          if zip -l OpenCodeMobile.ipa 2>&1 | grep -qi "mobileprovision"; then
             echo "WARNING: IPA contains provisioning profile"
           fi
           
-          unzip -p OpenCodeMobile.ipa Payload/OpenCode.app/Info.plist > /tmp/Info.plist
+          echo "Extracting Info.plist:"
+          unzip -p OpenCodeMobile.ipa Payload/OpenCode.app/Info.plist > /tmp/Info.plist 2>&1
           if [ ! -s /tmp/Info.plist ]; then
             echo "ERROR: Missing Info.plist in IPA"
             exit 1
           fi
-          echo "✓ Info.plist exists"
+          echo "✓ Info.plist exists ($(wc -c < /tmp/Info.plist) bytes)"
           echo "IPA validation passed"
           ls -lh OpenCodeMobile.ipa
 
