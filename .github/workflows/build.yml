@@ -60,6 +60,8 @@ jobs:
     needs: check-new-version
     if: needs.check-new-version.outputs.should_build == 'true'
     runs-on: macos-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
