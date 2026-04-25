@@ -13,16 +13,16 @@
       "tintColor": "007AFF",
       "category": "utilities",
       "version": "1.0.0",
-      "versionDate": "2026-04-25T08:22:02+00:00",
+      "versionDate": "2026-04-25T08:38:31+00:00",
       "versionDescription": "See GitHub release notes.",
-      "downloadURL": "https://github.com/ssalonen/opencode-mobile-ipa/releases/download/f7bf91be93f39f7a9c3eab9fb6fc7392f8726558/OpenCodeMobile.ipa",
+      "downloadURL": "https://github.com/ssalonen/opencode-mobile-ipa/releases/download/v1.0.0-f7bf91b/OpenCodeMobile.ipa",
       "size": 10156782,
       "versions": [
         {
           "version": "1.0.0",
-          "date": "2026-04-25T08:22:02+00:00",
+          "date": "2026-04-25T08:38:31+00:00",
           "localizedDescription": "See GitHub release notes.",
-          "downloadURL": "https://github.com/ssalonen/opencode-mobile-ipa/releases/download/f7bf91be93f39f7a9c3eab9fb6fc7392f8726558/OpenCodeMobile.ipa",
+          "downloadURL": "https://github.com/ssalonen/opencode-mobile-ipa/releases/download/v1.0.0-f7bf91b/OpenCodeMobile.ipa",
           "size": 10156782,
           "minOSVersion": "15.1"
         }
