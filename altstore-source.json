@@ -1,0 +1,24 @@
+{
+  "name": "OpenCode Mobile",
+  "identifier": "com.ssalonen.opencode-mobile.source",
+  "sourceURL": "https://raw.githubusercontent.com/ssalonen/opencode-mobile-ipa/main/altstore-source.json",
+  "apps": [
+    {
+      "name": "OpenCode Mobile",
+      "bundleIdentifier": "ceo.nerd.opencode",
+      "developerName": "ssalonen",
+      "subtitle": "Native iOS client for OpenCode AI coding agent",
+      "localizedDescription": "Native iOS app for OpenCode AI coding agent. Real-time streaming, QR pairing, Face ID, terminal access, and git ops from your phone.\n\nBuilt with Expo & React Native.",
+      "iconURL": "https://raw.githubusercontent.com/ssalonen/opencode-mobile-ipa/main/icon.png",
+      "tintColor": "007AFF",
+      "category": "utilities",
+      "version": "0.0.0",
+      "versionDate": "2026-01-01T00:00:00+00:00",
+      "versionDescription": "See GitHub release notes.",
+      "downloadURL": "https://github.com/ssalonen/opencode-mobile-ipa/releases/download/v0.0.0/OpenCodeMobile.ipa",
+      "size": 0,
+      "versions": []
+    }
+  ],
+  "news": []
+}

@@ -1,0 +1,202 @@
+name: Check Upstream & Build
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # weekly (Sunday midnight UTC)
+  workflow_dispatch:
+
+jobs:
+  check-new-version:
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+      new_tag: ${{ steps.check.outputs.new_tag }}
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v6
+
+      - name: Check upstream for latest tag
+        id: check
+        run: |
+          upstream_url="https://github.com/Shahfarzane/opencode-mobile.git"
+          upstream_tag=$(git ls-remote --tags "$upstream_url" 'v*' 2>/dev/null | cut -f2 | sed 's|refs/tags/||' | sort -V | tail -1)
+          
+          if [ -z "$upstream_tag" ]; then
+            echo "No tags found"
+            exit 1
+          fi
+          
+          echo "Upstream latest: $upstream_tag"
+          
+          last_built=""
+          if [ -f last-built.txt ]; then
+            last_built=$(cat last-built.txt)
+          fi
+          
+          echo "Last built: $last_built"
+          
+          if [ "$upstream_tag" != "$last_built" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            echo "new_tag=$upstream_tag" >> "$GITHUB_OUTPUT"
+            echo "New version available: $upstream_tag"
+          else
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            echo "new_tag=" >> "$GITHUB_OUTPUT"
+            echo "No new version"
+          fi
+
+      - name: Save last built
+        if: steps.check.outputs.should_build == 'true'
+        run: |
+          echo "${{ steps.check.outputs.new_tag }}" > last-built.txt
+
+  build:
+    needs: check-new-version
+    if: needs.check-new-version.outputs.should_build == 'true'
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        run: |
+          TAG="${{ needs.check-new-version.outputs.new_tag }}"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION_NUM=${TAG#v}" >> "$GITHUB_ENV"
+
+      - name: Clone upstream repo
+        run: |
+          git clone --depth 1 --branch ${{ env.TAG }} \
+            https://github.com/Shahfarzane/opencode-mobile.git \
+            upstream-repo
+
+      - name: Setup Node/Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd upstream-repo/packages/mobile
+          bun install
+
+      - name: Setup Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+          xcodebuild -version
+
+      - name: Run Expo prebuild
+        run: |
+          cd upstream-repo/packages/mobile
+          npx expo prebuild --platform ios --clean
+
+      - name: Build archive (ad-hoc signed)
+        run: |
+          cd upstream-repo/packages/mobile/ios
+          xcodebuild archive \
+            -workspace OpenCodeMobile.xcworkspace \
+            -scheme OpenCodeMobile \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/OpenCodeMobile.xcarchive" \
+            CODE_SIGN_IDENTITY="-" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            DEVELOPMENT_TEAM="" \
+            MARKETING_VERSION="${{ env.VERSION_NUM }}" \
+            CURRENT_PROJECT_VERSION="${{ env.VERSION_NUM }}"
+
+      - name: Package IPA
+        run: |
+          APP_PATH=$(find "$RUNNER_TEMP/OpenCodeMobile.xcarchive" -name "OpenCodeMobile.app" | head -1)
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -r "$APP_PATH" "$RUNNER_TEMP/Payload/"
+          cd "$RUNNER_TEMP"
+          zip -r OpenCodeMobile.ipa Payload/
+          echo "IPA_PATH=$RUNNER_TEMP/OpenCodeMobile.ipa" >> "$GITHUB_ENV"
+          echo "IPA_SIZE=$(wc -c < OpenCodeMobile.ipa | tr -d ' ')" >> "$GITHUB_ENV"
+
+      - name: Update altstore-source.json
+        run: |
+          export DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/OpenCodeMobile.ipa"
+          export DATE="$(date -u +"%Y-%m-%dT%H:%M:%S+00:00")"
+
+          python3 - <<'PYEOF'
+          import json, os, shutil
+
+          version_num  = os.environ["VERSION_NUM"]
+          ipa_size     = int(os.environ["IPA_SIZE"])
+          download_url = os.environ["DOWNLOAD_URL"]
+          date         = os.environ["DATE"]
+
+          with open("altstore-source.json") as f:
+              source = json.load(f)
+
+          app = source["apps"][0]
+
+          new_entry = {
+              "version": version_num,
+              "date": date,
+              "localizedDescription": "See GitHub release notes.",
+              "downloadURL": download_url,
+              "size": ipa_size,
+              "minOSVersion": "15.1",
+          }
+
+          # Remove any existing entry for this version then prepend fresh one
+          app["versions"] = [v for v in app.get("versions", []) if v["version"] != version_num]
+          app["versions"].insert(0, new_entry)
+
+          # Top-level fields required by SideStore/AltStore to determine latest version
+          app["version"] = version_num
+          app["versionDate"] = date
+          app["versionDescription"] = "See GitHub release notes."
+          app["downloadURL"] = download_url
+          app["size"] = ipa_size
+
+          with open("altstore-source.json", "w") as f:
+              json.dump(source, f, indent=2)
+              f.write("\n")
+
+          # Stash a copy so the commit step can apply it after switching to main
+          shutil.copy("altstore-source.json", os.path.join(os.environ["RUNNER_TEMP"], "altstore-source.json"))
+
+          print(f"Updated source to {version_num} ({ipa_size} bytes)")
+          PYEOF
+
+      - name: Commit updated source JSON
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git fetch origin main
+          git checkout main
+          cp "$RUNNER_TEMP/altstore-source.json" altstore-source.json
+          git add altstore-source.json
+          if git diff --cached --quiet; then
+            echo "No changes to altstore-source.json"
+          else
+            git commit -m "chore: update AltStore source for ${TAG}"
+            git push origin HEAD:main
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ env.TAG }}
+          name: "OpenCode Mobile ${{ env.VERSION_NUM }}"
+          body: |
+            ## Install via SideStore / AltStore
+
+            **Add this source URL in SideStore/AltStore:**
+            ```
+            https://raw.githubusercontent.com/${{ github.repository }}/main/altstore-source.json
+            ```
+
+            Or [download the IPA directly](https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/OpenCodeMobile.ipa) and open it in SideStore/AltStore.
+
+            ---
+            *Unsigned build — SideStore/AltStore will sign it with your Apple ID on install.*
+          files: ${{ env.IPA_PATH }}
+          fail_on_unmatched_files: true
