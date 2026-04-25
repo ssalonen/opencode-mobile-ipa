@@ -70,9 +70,11 @@ jobs:
 
       - name: Get version
         run: |
-          # Use placeholder version since commit SHA can't be used as version
-          TAG="${{ needs.check-new-version.outputs.new_sha }}"
-          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          SHA="${{ needs.check-new-version.outputs.new_sha }}"
+          SHORT_SHA="${SHA:0:7}"
+          TAG_NAME="v1.0.0-${SHORT_SHA}"
+          export TAG="$SHA"  # Keep full SHA for last-built tracking
+          echo "TAG=$TAG_NAME" >> "$GITHUB_ENV"
           echo "VERSION_NUM=1.0.0" >> "$GITHUB_ENV"
 
       - name: Clone upstream repo
