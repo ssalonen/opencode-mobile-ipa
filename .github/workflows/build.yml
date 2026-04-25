@@ -28,7 +28,6 @@ jobs:
         id: check
         run: |
           upstream_url="https://github.com/Shahfarzane/opencode-mobile.git"
-          # Get latest commit SHA from main branch
           new_sha=$(git ls-remote "$upstream_url" main | cut -f1)
           
           if [ -z "$new_sha" ]; then
@@ -45,17 +44,14 @@ jobs:
           
           echo "Last built: $last_built"
           
-          # Force rebuild if requested via workflow_dispatch
-          if [ "${{ inputs.force_rebuild }}" == "true" ]; then
+          if [ "${{ github.event.inputs.force_rebuild }}" == "true" ]; then
             echo "Force rebuild requested"
             echo "should_build=true" >> "$GITHUB_OUTPUT"
             echo "new_sha=$new_sha" >> "$GITHUB_OUTPUT"
             echo "new_version=${new_sha:0:7}" >> "$GITHUB_OUTPUT"
-            echo "Forced rebuild: $new_sha"
           elif [ "$new_sha" != "$last_built" ]; then
             echo "should_build=true" >> "$GITHUB_OUTPUT"
             echo "new_sha=$new_sha" >> "$GITHUB_OUTPUT"
-            # Use first 7 chars of SHA as version
             echo "new_version=${new_sha:0:7}" >> "$GITHUB_OUTPUT"
             echo "New version available: $new_sha"
           else
@@ -66,9 +62,14 @@ jobs:
           fi
 
       - name: Save last built
-        if: steps.check.outputs.should_build == 'true'
+        if: needs.check-new-version.outputs.should_build == 'true'
         run: |
-          echo "${{ steps.check.outputs.new_sha }}" > last-built.txt
+          echo "${{ needs.check-new-version.outputs.new_sha }}" > last-built.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add last-built.txt
+          git commit -m "chore: update last-built for ${{ needs.check-new-version.outputs.new_version }}"
+          git push
 
   build:
     needs: check-new-version
@@ -212,7 +213,7 @@ jobs:
           export DATE="$(date -u +"%Y-%m-%dT%H:%M:%S+00:00")"
 
           python3 - <<'PYEOF'
-          import json, os, shutil
+          import json, os, urllib.request
 
           version_num  = os.environ["VERSION_NUM"]
           ipa_size     = int(os.environ["IPA_SIZE"])
@@ -233,36 +234,31 @@ jobs:
               "minOSVersion": "15.1",
           }
 
-          # Remove any existing entry for this version then prepend fresh one
           app["versions"] = [v for v in app.get("versions", []) if v["version"] != version_num]
           app["versions"].insert(0, new_entry)
 
-          # Top-level fields required by SideStore/AltStore to determine latest version
           app["version"] = version_num
           app["versionDate"] = date
           app["versionDescription"] = "See GitHub release notes."
           app["downloadURL"] = download_url
           app["size"] = ipa_size
 
-with open("altstore-source.json", "w") as f:
-               json.dump(source, f, indent=2)
-               f.write("\n")
+          with open("altstore-source.json", "w") as f:
+              json.dump(source, f, indent=2)
+              f.write("\n")
 
-           # Validate the JSON is valid
-           with open("altstore-source.json") as f:
-               json.load(f)
-           print("AltStore source JSON is valid")
+          with open("altstore-source.json") as f:
+              json.load(f)
+          print("AltStore source JSON is valid")
 
-           # Verify download URL is accessible
-           import urllib.request
-           try:
-               response = urllib.request.urlopen(download_url, timeout=10)
-               print(f"IPA URL accessible: {response.status}")
-           except Exception as e:
-               print(f"WARNING: Could not verify IPA URL: {e}")
+          try:
+              response = urllib.request.urlopen(download_url, timeout=10)
+              print(f"IPA URL accessible: {response.status}")
+          except Exception as e:
+              print(f"WARNING: Could not verify IPA URL: {e}")
 
-           print(f"Updated source to {version_num} ({ipa_size} bytes)")
-           PYEOF
+          print(f"Updated source to {version_num} ({ipa_size} bytes)")
+          PYEOF
 
       - name: Commit updated source JSON
         run: |
