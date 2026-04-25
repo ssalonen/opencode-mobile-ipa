@@ -10,24 +10,26 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       should_build: ${{ steps.check.outputs.should_build }}
-      new_tag: ${{ steps.check.outputs.new_tag }}
+      new_sha: ${{ steps.check.outputs.new_sha }}
+      new_version: ${{ steps.check.outputs.new_version }}
     steps:
       - name: Checkout this repo
         uses: actions/checkout@v6
 
-      - name: Check upstream for latest tag
+      - name: Check upstream for latest commit
         id: check
         run: |
           upstream_url="https://github.com/Shahfarzane/opencode-mobile.git"
-          upstream_tag=$(git ls-remote --tags "$upstream_url" 'v*' 2>/dev/null | cut -f2 | sed 's|refs/tags/||' | sort -V | tail -1)
+          # Get latest commit SHA from main branch
+          new_sha=$(git ls-remote "$upstream_url" main | cut -f1)
           
-          if [ -z "$upstream_tag" ]; then
-            echo "No tags found"
+          if [ -z "$new_sha" ]; then
+            echo "No main branch found"
             exit 1
           fi
           
-          echo "Upstream latest: $upstream_tag"
-          
+          echo "Upstream latest SHA: $new_sha"
+
           last_built=""
           if [ -f last-built.txt ]; then
             last_built=$(cat last-built.txt)
@@ -35,20 +37,24 @@ jobs:
           
           echo "Last built: $last_built"
           
-          if [ "$upstream_tag" != "$last_built" ]; then
+          # Use SHA as version identifier
+          if [ "$new_sha" != "$last_built" ]; then
             echo "should_build=true" >> "$GITHUB_OUTPUT"
-            echo "new_tag=$upstream_tag" >> "$GITHUB_OUTPUT"
-            echo "New version available: $upstream_tag"
+            echo "new_sha=$new_sha" >> "$GITHUB_OUTPUT"
+            # Use first 7 chars of SHA as version
+            echo "new_version=${new_sha:0:7}" >> "$GITHUB_OUTPUT"
+            echo "New version available: $new_sha"
           else
             echo "should_build=false" >> "$GITHUB_OUTPUT"
-            echo "new_tag=" >> "$GITHUB_OUTPUT"
+            echo "new_sha=" >> "$GITHUB_OUTPUT"
+            echo "new_version=" >> "$GITHUB_OUTPUT"
             echo "No new version"
           fi
 
       - name: Save last built
         if: steps.check.outputs.should_build == 'true'
         run: |
-          echo "${{ steps.check.outputs.new_tag }}" > last-built.txt
+          echo "${{ steps.check.outputs.new_sha }}" > last-built.txt
 
   build:
     needs: check-new-version
@@ -62,13 +68,14 @@ jobs:
 
       - name: Get version
         run: |
-          TAG="${{ needs.check-new-version.outputs.new_tag }}"
+          TAG="${{ needs.check-new-version.outputs.new_sha }}"
+          VERSION="${{ needs.check-new-version.outputs.new_version }}"
           echo "TAG=$TAG" >> "$GITHUB_ENV"
-          echo "VERSION_NUM=${TAG#v}" >> "$GITHUB_ENV"
+          echo "VERSION_NUM=$VERSION" >> "$GITHUB_ENV"
 
       - name: Clone upstream repo
         run: |
-          git clone --depth 1 --branch ${{ env.TAG }} \
+          git clone --depth 1 --branch main \
             https://github.com/Shahfarzane/opencode-mobile.git \
             upstream-repo
 
