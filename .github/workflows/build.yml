@@ -259,7 +259,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git checkout main
-          cp "$RUNNER_TEMP/altstore-source.json" altstore-source.json
           git add altstore-source.json
           if git diff --cached --quiet; then
             echo "No changes to altstore-source.json"
