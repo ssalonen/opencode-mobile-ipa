@@ -176,17 +176,17 @@ jobs:
           echo "✓ Valid zip archive"
           
           echo "Listing IPA contents:"
-          zip -l OpenCodeMobile.ipa 2>&1 | head -50
-          
+          unzip -l OpenCodeMobile.ipa 2>&1 | head -50
+
           echo "Checking for Payload:"
-          if zip -l OpenCodeMobile.ipa 2>&1 | grep -q "Payload"; then
+          if unzip -l OpenCodeMobile.ipa 2>&1 | grep -q "Payload"; then
             echo "✓ Contains Payload directory"
           else
             echo "ERROR: IPA missing Payload directory"
             exit 1
           fi
           
-          if zip -l OpenCodeMobile.ipa 2>&1 | grep -qi "mobileprovision"; then
+          if unzip -l OpenCodeMobile.ipa 2>&1 | grep -qi "mobileprovision"; then
             echo "WARNING: IPA contains provisioning profile"
           fi
           
