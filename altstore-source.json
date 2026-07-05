@@ -12,12 +12,20 @@
       "iconURL": "https://raw.githubusercontent.com/ssalonen/opencode-mobile-ipa/main/icon.png",
       "tintColor": "007AFF",
       "category": "utilities",
-      "version": "1.0.9",
-      "versionDate": "2026-06-28T01:03:45+00:00",
+      "version": "1.0.10",
+      "versionDate": "2026-07-05T00:50:58+00:00",
       "versionDescription": "See GitHub release notes.",
-      "downloadURL": "https://github.com/ssalonen/opencode-mobile-ipa/releases/download/v1.0.9-f7bf91b/OpenCodeMobile.ipa",
-      "size": 9954948,
+      "downloadURL": "https://github.com/ssalonen/opencode-mobile-ipa/releases/download/v1.0.10-f7bf91b/OpenCodeMobile.ipa",
+      "size": 9954974,
       "versions": [
+        {
+          "version": "1.0.10",
+          "date": "2026-07-05T00:50:58+00:00",
+          "localizedDescription": "See GitHub release notes.",
+          "downloadURL": "https://github.com/ssalonen/opencode-mobile-ipa/releases/download/v1.0.10-f7bf91b/OpenCodeMobile.ipa",
+          "size": 9954974,
+          "minOSVersion": "15.1"
+        },
         {
           "version": "1.0.9",
           "date": "2026-06-28T01:03:45+00:00",
